@@ -11,16 +11,27 @@ const retornaTodosProducts = async (req, res) => {
 };
 
 const criaProduct = async (req, res) => {
-  const { id, name, unit, price, stock_quantity, image_url, description } = req.body;
+  const { name, unit, price, stock_quantity, image_url, description } = req.body;
   try {
-    if (!id || !name) {
-      return res.status(400).json({ message: "ID e name são obrigatórios." });
+    console.log('Recebido POST /product body:', req.body);
+    if (!name) {
+      return res.status(400).json({ message: "Campo obrigatório: name." });
     }
-    const product = await productRepository.criarProduct({ id, name, unit, price, stock_quantity, image_url, description });
-    res.status(201).json(product);
+
+    const existing = await productRepository.obterProductPorName({ name });
+    if (existing) {
+      return res.status(409).json({ message: 'Produto já existe' });
+    }
+
+    const created = await productRepository.criarProduct({ name, unit, price, stock_quantity, image_url, description });
+    console.log('Produto criado:', created && created.toJSON ? created.toJSON() : created);
+    res.status(201).json({ message: 'Produto criado com sucesso', product: created });
   } catch (error) {
     console.error("Erro ao criar produto:", error);
-    res.sendStatus(500);
+    if (error.name === 'SequelizeUniqueConstraintError' || (error.original && error.original.code === '23505')) {
+      return res.status(409).json({ message: 'Produto já existe' });
+    }
+    res.status(500).json({ message: 'Erro ao criar produto' });
   }
 };
 

@@ -9,8 +9,8 @@ const obterUserPorId = async (user) => {
 };
 
 const criarUser = async (user) => {
-  await model.User.create(user);
-  return user;
+  const created = await model.User.create(user);
+  return created;
 };
 
 const atualizarUser = async (user) => {

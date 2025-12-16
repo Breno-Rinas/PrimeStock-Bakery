@@ -11,49 +11,31 @@ import {
   TableHead,
   TableRow,
   Typography,
-  Drawer,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  AppBar,
-  Toolbar,
   IconButton,
   useMediaQuery,
   useTheme,
   Button,
-  TextField,
   Checkbox,
   Chip,
   Fab
 } from '@mui/material';
 import {
-  Menu as MenuIcon,
-  Dashboard as DashboardIcon,
-  ShoppingCart as ShoppingCartIcon,
-  Inventory as InventoryIcon,
-  People as PeopleIcon,
-  Assessment as AssessmentIcon,
-  Settings as SettingsIcon,
-  Logout as LogoutIcon,
   Add as AddIcon,
   Delete as DeleteIcon,
-  ShoppingBasket as ShoppingBasketIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import Menu from '../components/Menu';
+import ProductPicker from '../components/ProductPicker';
 
 const Shopping = () => {
   const navigate = useNavigate();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [newItem, setNewItem] = useState('');
+  const _isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [_mobileOpen, _setMobileOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const drawerWidth = 240;
 
-  // Lista de compras (fetched do backend)
   const [shoppingList, setShoppingList] = useState([]);
   const [loadingList, setLoadingList] = useState(false);
   const [listError, setListError] = useState(null);
@@ -63,14 +45,12 @@ const Shopping = () => {
       setLoadingList(true);
       try {
         const res = await fetch('http://localhost:3002/shopping-list/todos');
-        // logs para auxiliar debug (status e body)
-        console.log('[Shopping] GET /shopping-list/todos status:', res.status);
-        const json = await res.json();
-        console.log('[Shopping] GET /shopping-list/todos body:', json);
+  console.log('[Shopping] GET /shopping-list/todos status:', res.status);
+  const json = await res.json();
+  console.log('[Shopping] GET /shopping-list/todos body:', json);
         if (!res.ok) throw new Error('Erro ao buscar lista de compras: ' + (json.message || res.statusText));
         const raw = json.items || json.shoppingList || json;
         const list = (raw && Array.isArray(raw)) ? raw : [];
-        // mapear campos para o formato do frontend
         const mapped = list.map(i => ({
           id: i.id,
           item: i.product_name || i.item || i.name,
@@ -79,9 +59,9 @@ const Shopping = () => {
           priority: i.priority || 'medium'
         }));
         setShoppingList(mapped);
-      } catch (err) {
-        console.error(err);
-        setListError(err.message);
+      } catch {
+        console.error('Erro ao buscar lista de compras');
+        setListError('Erro ao buscar lista de compras');
       } finally {
         setLoadingList(false);
       }
@@ -90,48 +70,39 @@ const Shopping = () => {
     fetchList();
   }, []);
 
-  const addItem = () => {
-    if (!newItem.trim()) return;
-    (async () => {
-      try {
-        const payload = {
-          id: Date.now(),
-          product_name: newItem,
-          quantity: 1,
-          product_unit: '',
-          priority: 'medium',
-          status: 'pending'
-        };
-        const res = await fetch('http://localhost:3002/shopping-list', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        if (!res.ok) throw new Error('Erro ao adicionar item');
-        const created = await res.json();
-        const newShoppingItem = {
-          id: created.id || payload.id,
-          item: created.product_name || newItem,
-          quantity: String(created.quantity || 1),
-          completed: (created.status === 'completed'),
-          priority: created.priority || 'medium'
-        };
-        setShoppingList(prev => [...prev, newShoppingItem]);
-        setNewItem('');
-      } catch (err) {
-        console.error(err);
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('user');
+      const parsed = stored ? JSON.parse(stored) : null;
+      const permissions = parsed && parsed.permissions ? parsed.permissions : [];
+      if (!Array.isArray(permissions) || !permissions.includes('shopping-list')) {
+        if (Array.isArray(permissions) && permissions.includes('dashboard')) {
+          navigate('/dashboard');
+        } else {
+          navigate('/');
+        }
       }
-    })();
+    } catch {
+    }
+  }, []);
+
+  const handleOpenPicker = () => setPickerOpen(true);
+  const handleClosePicker = () => setPickerOpen(false);
+  const handleProductAdded = (item) => {
+    setShoppingList(prev => [...prev, item]);
   };
 
   const toggleComplete = (id) => {
-    // atualizar local e tentar enviar para backend
     const item = shoppingList.find(i => i.id === id);
     if (!item) return;
+
     const updated = { ...item, completed: !item.completed };
+
+    setShoppingList(shoppingList.map(i => i.id === id ? updated : i));
+
     (async () => {
       try {
-        await fetch(`http://localhost:3002/shopping-list/${id}`, {
+        const res = await fetch(`http://localhost:3002/shopping-list/${id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -142,11 +113,56 @@ const Shopping = () => {
             status: updated.completed ? 'completed' : 'pending'
           })
         });
+
+        if (!res.ok) {
+          console.error('[Shopping] Falha ao atualizar shopping-list', res.status);
+          setShoppingList(prev => prev.map(i => i.id === id ? { ...i, completed: !updated.completed } : i));
+          return;
+        }
+
+        if (updated.completed) {
+          try {
+            const prodRes = await fetch('http://localhost:3002/product/todos');
+            if (!prodRes.ok) throw new Error('Falha ao buscar produtos');
+            const prodJson = await prodRes.json();
+            const products = prodJson.items || prodJson.products || prodJson;
+            const match = (Array.isArray(products) ? products : []).find(p => {
+              const name = (p.product_name || p.name || '').toString().trim().toLowerCase();
+              return name === (updated.item || '').toString().trim().toLowerCase();
+            });
+
+            if (!match) {
+              console.warn('[Shopping] Produto não encontrado para atualizar quantidade:', updated.item);
+              return;
+            }
+
+            const newQuantity = Number(match.stock_quantity || 0) + 10;
+
+            const payload = {
+              product_name: match.product_name || match.name,
+              product_price: match.product_price || match.price || 0,
+              product_unit: match.product_unit || match.unit || '',
+              stock_quantity: newQuantity
+            };
+
+            const putRes = await fetch(`http://localhost:3002/product/${match.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+
+            if (!putRes.ok) {
+              console.error('[Shopping] Falha ao atualizar produto', putRes.status);
+            }
+          } catch (err) {
+            console.error('[Shopping] Erro ao atualizar quantidade do produto:', err);
+          }
+        }
       } catch (err) {
-        console.error('Erro ao atualizar item:', err);
+        console.error('Erro ao atualizar item na shopping-list:', err);
+        setShoppingList(prev => prev.map(i => i.id === id ? { ...i, completed: !updated.completed } : i));
       }
     })();
-    setShoppingList(shoppingList.map(i => i.id === id ? updated : i));
   };
 
   const deleteItem = (id) => {
@@ -184,7 +200,6 @@ const Shopping = () => {
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#FFF7F2' }}>
       <Menu />
-      {/* Conteúdo principal */}
       <Box
         component="main"
         sx={{
@@ -208,7 +223,6 @@ const Shopping = () => {
             Lista de Compras
           </Typography>
 
-          {/* Resumo */}
           <Grid container spacing={3} sx={{ mb: 4 }}>
             <Grid item xs={12} md={4}>
               <Paper sx={{ p: 3, textAlign: 'center', backgroundColor: '#E8F5E8' }}>
@@ -242,47 +256,26 @@ const Shopping = () => {
             </Grid>
           </Grid>
 
-          {/* Adicionar novo item */}
           <Paper sx={{ p: 3, mb: 3 }}>
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-              <TextField
-                fullWidth
-                placeholder="Adicionar novo item à lista..."
-                value={newItem}
-                onChange={(e) => setNewItem(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && addItem()}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    '& fieldset': {
-                      borderColor: '#C08A5A',
-                    },
-                    '&:hover fieldset': {
-                      borderColor: '#5A2D2D',
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#5A2D2D',
-                    }
-                  }
-                }}
-              />
               <Button
                 variant="contained"
-                onClick={addItem}
+                onClick={handleOpenPicker}
                 startIcon={<AddIcon />}
                 sx={{
                   backgroundColor: '#5A2D2D',
                   '&:hover': {
                     backgroundColor: '#C08A5A'
                   },
-                  minWidth: '150px'
+                  minWidth: '200px'
                 }}
               >
-                Adicionar
+                Adicionar produto cadastrado
               </Button>
             </Box>
           </Paper>
+          <ProductPicker open={pickerOpen} onClose={handleClosePicker} onAdded={handleProductAdded} />
 
-          {/* Mensagens de carregamento / erro */}
           {loadingList ? (
             <Paper sx={{ p: 2, mb: 3, textAlign: 'center' }}>
               <Typography variant="body1">Carregando lista de compras...</Typography>
@@ -296,7 +289,6 @@ const Shopping = () => {
             </Paper>
           ) : null}
 
-          {/* Lista de compras */}
           <Paper elevation={3} sx={{ backgroundColor: '#FFFFFF', borderRadius: 2 }}>
             <TableContainer>
               <Table>

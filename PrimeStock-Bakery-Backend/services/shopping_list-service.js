@@ -11,12 +11,35 @@ const retornaTodasShoppingLists = async (req, res) => {
 };
 
 const criaShoppingItem = async (req, res) => {
-  const { id, product_id, product_name, quantity, product_unit, priority, status } = req.body;
   try {
-    if (!id || !product_id || !product_name || quantity === undefined) {
-      return res.status(400).json({ message: "Campos obrigatórios: id, product_id, product_name, quantity." });
+    const {
+      id,
+      product_id,
+      product_name,
+      product_unit = null,
+      status = 'pending'
+    } = req.body;
+
+    let { quantity, priority } = req.body;
+
+    if (!product_id || !product_name) {
+      return res.status(400).json({ message: "Campos obrigatórios: product_id, product_name." });
     }
-    const item = await shoppingRepository.criarShoppingListItem({ id, product_id, product_name, quantity, product_unit, priority, status });
+
+    if (quantity === undefined || quantity === null) quantity = 10;
+    if (!priority) priority = 'normal';
+
+    const itemToCreate = {
+      ...(id ? { id } : {}),
+      product_id,
+      product_name,
+      quantity,
+      product_unit,
+      priority,
+      status
+    };
+
+    const item = await shoppingRepository.criarShoppingListItem(itemToCreate);
     res.status(201).json(item);
   } catch (error) {
     console.error("Erro ao criar item na shopping list:", error);

@@ -43,7 +43,7 @@ import { useNavigate } from 'react-router-dom';
 const ShoppingList = () => {
   const navigate = useNavigate();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const _isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [shoppingList, setShoppingList] = useState([
     { id: 1, name: 'Farinha de Trigo', quantity: 5, unit: 'kg', checked: false },
@@ -188,7 +188,6 @@ const ShoppingList = () => {
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#FFF7F2' }}>
-      {/* AppBar para mobile */}
       <AppBar
         position="fixed"
         sx={{
@@ -211,7 +210,6 @@ const ShoppingList = () => {
         </Toolbar>
       </AppBar>
 
-      {/* Menu lateral */}
       <Box
         component="nav"
         sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
@@ -243,7 +241,6 @@ const ShoppingList = () => {
         </Drawer>
       </Box>
 
-      {/* Conteúdo principal */}
       <Box
         component="main"
         sx={{
@@ -276,7 +273,6 @@ const ShoppingList = () => {
             </Typography>
           </Box>
 
-          {/* Barra de progresso */}
           <Box
             sx={{
               width: '100%',
@@ -297,7 +293,6 @@ const ShoppingList = () => {
             />
           </Box>
 
-          {/* Botão adicionar item */}
           <Button
             variant="contained"
             startIcon={<AddIcon />}
@@ -313,8 +308,6 @@ const ShoppingList = () => {
           >
             Adicionar Item
           </Button>
-
-          {/* Lista de compras */}
           <Paper
             sx={{
               backgroundColor: '#FFFFFF',
@@ -402,7 +395,6 @@ const ShoppingList = () => {
         </Container>
       </Box>
 
-      {/* Modal de adicionar/editar item */}
       <Dialog
         open={openModal}
         onClose={handleCloseModal}

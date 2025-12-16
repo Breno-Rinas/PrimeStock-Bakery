@@ -35,15 +35,29 @@ import Menu from '../components/Menu';
 const Dashboard = () => {
   const navigate = useNavigate();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const _isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [_mobileOpen, _setMobileOpen] = useState(false);
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('user');
+      const parsed = stored ? JSON.parse(stored) : null;
+      const permissions = parsed && parsed.permissions ? parsed.permissions : [];
+      if (!Array.isArray(permissions) || !permissions.includes('dashboard')) {
+        if (Array.isArray(permissions) && permissions.includes('shopping-list')) {
+          navigate('/shopping');
+        } else {
+          navigate('/');
+        }
+      }
+    } catch {
+    }
+  }, []);
 
-  const drawerWidth = 240;
+  const _drawerWidth = 240;
 
-  // Dados dos produtos (fetched do backend)
   const [productsData, setProductsData] = useState([]);
-  const [loadingProducts, setLoadingProducts] = useState(false);
-  const [productsError, setProductsError] = useState(null);
+  const [_productsDataLoading, setLoadingProducts] = useState(false);
+  const [_productsError, setProductsError] = useState(null);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -52,9 +66,7 @@ const Dashboard = () => {
         const res = await fetch('http://localhost:3002/product/todos');
         if (!res.ok) throw new Error('Erro ao buscar produtos');
         const json = await res.json();
-        // backend retorna { products: [...] } conforme service
         const products = json.products || [];
-        // mapear para o formato usado no dashboard
         const mapped = products.map(p => ({
           id: p.id,
           name: p.name || p.nome || p.product_name,
@@ -73,30 +85,21 @@ const Dashboard = () => {
     fetchProducts();
   }, []);
 
-  // Dados para o gráfico de pizza
   const chartData = productsData.map((product, index) => ({ id: index, value: product.value, label: product.name }));
 
-  const menuItems = [
+  const _menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
     { text: 'Produtos', icon: <InventoryIcon />, path: '/products' },
     { text: 'Lista de Compras', icon: <ShoppingBasketIcon />, path: '/shopping' }
   ];
 
-  const bottomMenuItems = [
+  const _bottomMenuItems = [
     { text: 'Configurações', icon: <SettingsIcon />, path: '/settings' }
   ];
 
-  const handleMenuClick = (path) => {
-    navigate(path);
-  };
-
-  const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
-  };
-
-  const handleLogout = () => {
-    navigate('/');
-  };
+  const _handleMenuClick = (path) => { navigate(path); };
+  const _handleDrawerToggle = () => { _setMobileOpen(v => !v); };
+  const _handleLogout = () => { navigate('/'); };
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#FFF7F2' }}>
@@ -122,16 +125,19 @@ const Dashboard = () => {
             Dashboard
           </Typography>
 
-          <Grid container spacing={3}>
-            {/* Gráfico de Pizza */}
-            <Grid item xs={12} md={6}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', width: '100%' }}>
+            <Grid container spacing={3} justifyContent="center" alignItems="center">
+            <Grid item xs={12} md={3} sx={{ display: 'flex', justifyContent: 'center' }}>
               <Paper
                 elevation={3}
                 sx={{
                   p: 3,
                   backgroundColor: '#FFFFFF',
                   borderRadius: 2,
-                  height: '100%'
+                  height: '100%',
+                  minHeight: { md: 600, xs: 'auto' },
+                  width: '100%',
+                  maxWidth: { md: 600, xs: '100%' }
                 }}
               >
                 <Typography
@@ -154,22 +160,24 @@ const Dashboard = () => {
                       }
                     ]}
                     colors={['#5A2D2D', '#C08A5A', '#F6C1CC', '#D4A574', '#8B4513']}
-                    width={400}
-                    height={300}
+                    width={420}
+                    height={400}
                   />
                 </Box>
               </Paper>
             </Grid>
 
-            {/* Tabela de Produtos */}
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} md={9} sx={{ display: 'flex', justifyContent: 'center' }}>
               <Paper
                 elevation={3}
                 sx={{
                   p: 3,
                   backgroundColor: '#FFFFFF',
                   borderRadius: 2,
-                  height: '100%'
+                  height: '100%',
+                  width: '100%',
+                  maxWidth: { md: 1200, xs: '100%' },
+                  
                 }}
               >
                 <Typography
@@ -182,8 +190,8 @@ const Dashboard = () => {
                 >
                   Produtos
                 </Typography>
-                <TableContainer>
-                  <Table size="small">
+                <TableContainer sx={{ width: '100%', height: '100%' }}>
+                  <Table size="small" sx={{ width: '100%' ,minWidth: 600, minHeight: 500, tableLayout: 'auto', height: '100%' }}>
                     <TableHead>
                       <TableRow sx={{ backgroundColor: '#FFF7F2' }}>
                         <TableCell sx={{ fontWeight: 'bold', color: '#5A2D2D' }}>
@@ -228,7 +236,8 @@ const Dashboard = () => {
                 </TableContainer>
               </Paper>
             </Grid>
-          </Grid>
+            </Grid>
+          </Box>
         </Container>
       </Box>
     </Box>

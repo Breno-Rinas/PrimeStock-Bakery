@@ -7,7 +7,9 @@ module.exports = (sequelize, DataTypes) => {
       id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
+        autoIncrement: true,
       },
+      
       product_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
@@ -43,7 +45,6 @@ module.exports = (sequelize, DataTypes) => {
   );
 
   ShoppingList.associate = function (models) {
-    // Associação: cada item da lista pertence a um Product
     ShoppingList.belongsTo(models.Product, { foreignKey: 'product_id', targetKey: 'id' });
   };
 

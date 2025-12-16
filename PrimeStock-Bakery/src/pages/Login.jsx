@@ -6,7 +6,9 @@ import {
   Button,
   Typography,
   Paper,
-  Link
+  Link,
+  Alert,
+  CircularProgress
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
@@ -16,6 +18,8 @@ const Login = () => {
     email: '',
     password: ''
   });
+  const [submitting, setSubmitting] = useState(false);
+  const [loginError, setLoginError] = useState(null);
 
   const handleChange = (e) => {
     setFormData({
@@ -24,12 +28,69 @@ const Login = () => {
     });
   };
 
+  const handleChangeWithClear = (e) => {
+    if (loginError) setLoginError(null);
+    handleChange(e);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log('Login:', formData);
-    // Aqui você pode adicionar a lógica de autenticação
-    // Por enquanto, redireciona direto para o dashboard
-    navigate('/dashboard');
+    setSubmitting(true);
+    setLoginError(null);
+    const doLogin = async () => {
+      try {
+        const res = await fetch('http://localhost:3002/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: formData.email, password: formData.password })
+        });
+
+        if (!res.ok) {
+          const txt = await res.text();
+          setLoginError(txt || 'Login falhou');
+          return;
+        }
+
+        const json = await res.json();
+        const token = json.token;
+        if (!token) {
+          setLoginError('Token não retornado pelo servidor');
+          return;
+        }
+
+        localStorage.setItem('token', token);
+
+        try {
+          const meRes = await fetch('http://localhost:3002/auth/me');
+          if (!meRes.ok) throw new Error('Não foi possível obter usuário');
+          const meJson = await meRes.json();
+          const user = meJson.user || {};
+          let permissions = meJson.permissions || [];
+          if (user.role_id === 2 && !permissions.includes('settings')) permissions.push('settings');
+
+          const userWithPerms = { ...user, permissions };
+          localStorage.setItem('user', JSON.stringify(userWithPerms));
+
+          if (permissions.includes('dashboard')) {
+            navigate('/dashboard');
+          } else if (permissions.includes('shopping-list') || permissions.includes('shopping')) {
+            navigate('/shopping');
+          } else {
+            navigate('/dashboard');
+          }
+        } catch (err) {
+          console.warn('Erro ao obter /me:', err);
+          navigate('/dashboard');
+        }
+      } catch (err) {
+        console.error(err);
+        setLoginError(err.message || 'Erro ao efetuar login');
+      } finally {
+        setSubmitting(false);
+      }
+    };
+
+    doLogin();
   };
 
   return (
@@ -80,7 +141,7 @@ const Login = () => {
               name="email"
               type="email"
               value={formData.email}
-              onChange={handleChange}
+              onChange={handleChangeWithClear}
               margin="normal"
               required
               sx={{
@@ -104,7 +165,7 @@ const Login = () => {
               name="password"
               type="password"
               value={formData.password}
-              onChange={handleChange}
+              onChange={handleChangeWithClear}
               margin="normal"
               required
               sx={{
@@ -122,10 +183,15 @@ const Login = () => {
               }}
             />
 
+            {loginError && (
+              <Alert severity="error" sx={{ mt: 2 }}>{loginError}</Alert>
+            )}
+
             <Button
               type="submit"
               fullWidth
               variant="contained"
+              disabled={submitting}
               sx={{
                 mt: 3,
                 mb: 2,
@@ -138,7 +204,7 @@ const Login = () => {
                 },
               }}
             >
-              Entrar
+              {submitting ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Entrar'}
             </Button>
 
             <Box sx={{ textAlign: 'center', mt: 2 }}>

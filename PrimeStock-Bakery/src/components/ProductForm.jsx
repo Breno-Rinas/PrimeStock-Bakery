@@ -6,11 +6,13 @@ import {
   DialogActions,
   TextField,
   Button,
-  Box
+  Box,
+  Alert,
+  CircularProgress
 } from '@mui/material';
 
 const ProductForm = ({ open, initialData = null, onClose, onSave }) => {
-  const [form, setForm] = useState({ name: '', price: '', quantity: '', image: '' });
+  const [form, setForm] = useState({ name: '', price: '', quantity: '', image: '', description: '' });
 
   useEffect(() => {
     if (initialData) {
@@ -18,24 +20,33 @@ const ProductForm = ({ open, initialData = null, onClose, onSave }) => {
         name: initialData.name || '',
         price: initialData.price || '',
         quantity: initialData.quantity || '',
-        image: initialData.image || ''
+        image: initialData.image || '',
+        description: initialData.description || ''
       });
     } else {
-      setForm({ name: '', price: '', quantity: '', image: '' });
+      setForm({ name: '', price: '', quantity: '', image: '', description: '' });
     }
   }, [initialData, open]);
 
   const handleChange = (field) => (e) => setForm({ ...form, [field]: e.target.value });
 
   const handleSubmit = () => {
-    if (!form.name || form.price === '' || form.quantity === '') return;
-    onSave({
+    if (!form.name || form.price === '' || form.quantity === '') {
+      setError('Por favor preencha nome, preço e quantidade.');
+      return;
+    }
+    setError(null);
+    return onSave({
       name: form.name,
       price: parseFloat(form.price),
       quantity: parseInt(form.quantity, 10),
-      image: form.image
+      image: form.image,
+      description: form.description
     });
   };
+
+  const [error, setError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
   return (
     <Dialog
@@ -49,6 +60,7 @@ const ProductForm = ({ open, initialData = null, onClose, onSave }) => {
         {initialData ? 'Editar Produto' : 'Novo Produto'}
       </DialogTitle>
       <DialogContent sx={{ pt: 3 }}>
+        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         <TextField
           fullWidth
           label="Nome do Produto"
@@ -85,10 +97,39 @@ const ProductForm = ({ open, initialData = null, onClose, onSave }) => {
           margin="normal"
           sx={{ '& .MuiOutlinedInput-root': { '&:hover fieldset': { borderColor: '#F6C1CC' }, '&.Mui-focused fieldset': { borderColor: '#C08A5A' } }, '& .MuiInputLabel-root.Mui-focused': { color: '#5A2D2D' } }}
         />
+        <TextField
+          fullWidth
+          label="Descrição (opcional)"
+          value={form.description}
+          onChange={handleChange('description')}
+          margin="normal"
+          multiline
+          minRows={2}
+          sx={{ '& .MuiOutlinedInput-root': { '&:hover fieldset': { borderColor: '#F6C1CC' }, '&.Mui-focused fieldset': { borderColor: '#C08A5A' } }, '& .MuiInputLabel-root.Mui-focused': { color: '#5A2D2D' } }}
+        />
       </DialogContent>
       <DialogActions sx={{ p: 2 }}>
         <Button onClick={onClose} sx={{ color: '#5A2D2D' }}>Cancelar</Button>
-        <Button onClick={handleSubmit} variant="contained" sx={{ backgroundColor: '#C08A5A', color: '#FFFFFF', '&:hover': { backgroundColor: '#5A2D2D' } }}>{initialData ? 'Atualizar' : 'Adicionar'}</Button>
+        <Button
+          onClick={async () => {
+            try {
+              setSubmitting(true);
+              const result = handleSubmit();
+              if (result && typeof result.then === 'function') {
+                await result;
+              }
+            } catch (e) {
+              console.error(e);
+            } finally {
+              setSubmitting(false);
+            }
+          }}
+          variant="contained"
+          disabled={submitting}
+          sx={{ backgroundColor: '#C08A5A', color: '#FFFFFF', '&:hover': { backgroundColor: '#5A2D2D' } }}
+        >
+          {submitting ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : (initialData ? 'Atualizar' : 'Adicionar')}
+        </Button>
       </DialogActions>
     </Dialog>
   );

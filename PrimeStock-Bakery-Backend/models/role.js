@@ -17,7 +17,6 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
       },
       permissions: {
-        // armazenar como array de strings quando o dialeto suportar, ou JSON/text
         type: DataTypes.ARRAY ? DataTypes.ARRAY(DataTypes.STRING) : DataTypes.JSON,
         allowNull: true,
       },
@@ -32,7 +31,6 @@ module.exports = (sequelize, DataTypes) => {
   );
 
   Role.associate = function (models) {
-    // Associação: role tem muitos usuários (User)
     Role.hasMany(models.User, { foreignKey: 'role_id', sourceKey: 'id' });
   };
 

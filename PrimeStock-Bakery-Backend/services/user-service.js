@@ -11,15 +11,18 @@ const retornaTodosUsers = async (req, res) => {
 };
 
 const criaUser = async (req, res) => {
-  const { id, name, email, password, role_id } = req.body;
+  const { name, email, password, role_id } = req.body;
   try {
-    if (!id || !name || !email || !password || role_id === undefined) {
-      return res.status(400).json({ message: "Campos obrigatórios: id, name, email, password, role_id." });
+    if (!name || !email || !password || role_id === undefined) {
+      return res.status(400).json({ message: "Campos obrigatórios: name, email, password, role_id." });
     }
-    const user = await userRepository.criarUser({ id, name, email, password, role_id });
-    res.status(201).json(user);
+    const created = await userRepository.criarUser({ name, email, password, role_id });
+    res.status(201).json(created);
   } catch (error) {
     console.error("Erro ao criar usuário:", error);
+    if (error.name === 'SequelizeUniqueConstraintError' || (error.original && error.original.code === '23505')) {
+      return res.status(409).json({ message: 'E-mail já cadastrado' });
+    }
     res.sendStatus(500);
   }
 };

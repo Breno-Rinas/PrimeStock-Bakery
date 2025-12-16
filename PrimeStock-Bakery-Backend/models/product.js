@@ -7,6 +7,7 @@ module.exports = (sequelize, DataTypes) => {
       id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
+        autoIncrement: true,
       },
       name: {
         type: DataTypes.STRING,
@@ -45,7 +46,6 @@ module.exports = (sequelize, DataTypes) => {
   );
 
   Product.associate = function (models) {
-    // Associação: um produto pode ter muitos itens na shopping list
     Product.hasMany(models.ShoppingList, { foreignKey: 'product_id', sourceKey: 'id' });
   };
 

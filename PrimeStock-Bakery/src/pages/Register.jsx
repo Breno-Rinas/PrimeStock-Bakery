@@ -6,7 +6,14 @@ import {
   Button,
   Typography,
   Paper,
-  Link
+  Link,
+  FormControl,
+  FormLabel,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  Alert,
+  CircularProgress
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
@@ -16,8 +23,12 @@ const Register = () => {
     name: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    role: 'comprador' 
   });
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -29,11 +40,56 @@ const Register = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
-      alert('As senhas não coincidem!');
+      setSubmitError('As senhas não coincidem!');
       return;
     }
-    console.log('Registro:', formData);
-    // Aqui você pode adicionar a lógica de registro
+    const doRegister = async () => {
+      setSubmitting(true);
+      setSubmitError(null);
+      setSubmitSuccess(false);
+      try {
+        const roleMap = { confeiteiro: 1, comprador: 2 };
+        const role_id = roleMap[formData.role] ?? 2;
+
+        const payload = {
+          username: formData.email,
+          password: formData.password,
+          name: formData.name,
+          role_id
+        };
+
+        const res = await fetch('http://localhost:3002/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          const textBody = await res.text();
+          let parsed = null;
+          try {
+            parsed = JSON.parse(textBody);
+          } catch {
+            parsed = null;
+          }
+          const message = (parsed && (parsed.message || parsed.error)) || textBody || '';
+          if (res.status === 409 || /e-?mail|email|já cadastrado|already exists/i.test(message)) {
+            throw new Error('Usuário com esse e-mail já existe');
+          }
+          throw new Error(message || 'Erro ao criar usuário');
+        }
+
+        setSubmitSuccess(true);
+        setTimeout(() => navigate('/'), 3000);
+      } catch (err) {
+        console.error(err);
+        setSubmitError(err.message || 'Erro no cadastro');
+      } finally {
+        setSubmitting(false);
+      }
+    };
+
+    doRegister();
   };
 
   return (
@@ -174,10 +230,32 @@ const Register = () => {
               }}
             />
 
+            <FormControl component="fieldset" sx={{ mt: 2 }}>
+              <FormLabel component="legend" sx={{ color: '#5A2D2D', mb: 1 }}>Sou:</FormLabel>
+              <RadioGroup
+                row
+                name="role"
+                value={formData.role}
+                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+              >
+                <FormControlLabel value="confeiteiro" control={<Radio sx={{ color: '#C08A5A' }} />} label="Confeiteiro" />
+                <FormControlLabel value="comprador" control={<Radio sx={{ color: '#C08A5A' }} />} label="Comprador" />
+              </RadioGroup>
+            </FormControl>
+
+            {submitError && (
+              <Alert severity="error" sx={{ mt: 2 }}>{submitError}</Alert>
+            )}
+
+            {submitSuccess && (
+              <Alert severity="success" sx={{ mt: 2 }}>Cadastro realizado com sucesso! Redirecionando para login...</Alert>
+            )}
+
             <Button
               type="submit"
               fullWidth
               variant="contained"
+              disabled={submitting}
               sx={{
                 mt: 3,
                 mb: 2,
@@ -190,7 +268,7 @@ const Register = () => {
                 },
               }}
             >
-              Cadastrar
+              {submitting ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Cadastrar'}
             </Button>
 
             <Box sx={{ textAlign: 'center', mt: 2 }}>

@@ -7,6 +7,7 @@ module.exports = (sequelize, DataTypes) => {
       id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
+        autoIncrement: true,
       },
       name: {
         type: DataTypes.STRING,
@@ -35,7 +36,6 @@ module.exports = (sequelize, DataTypes) => {
   );
 
   User.associate = function (models) {
-    // Associação: cada usuário pertence a um Role (role_id)
     User.belongsTo(models.Role, { foreignKey: 'role_id', targetKey: 'id' });
   };
 
