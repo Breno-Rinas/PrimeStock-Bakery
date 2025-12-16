@@ -35,7 +35,6 @@ import Menu from '../components/Menu';
 const Dashboard = () => {
   const navigate = useNavigate();
   const theme = useTheme();
-  const _isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [_mobileOpen, _setMobileOpen] = useState(false);
   useEffect(() => {
     try {
@@ -53,7 +52,6 @@ const Dashboard = () => {
     }
   }, []);
 
-  const _drawerWidth = 240;
 
   const [productsData, setProductsData] = useState([]);
   const [_productsDataLoading, setLoadingProducts] = useState(false);
@@ -86,20 +84,6 @@ const Dashboard = () => {
   }, []);
 
   const chartData = productsData.map((product, index) => ({ id: index, value: product.value, label: product.name }));
-
-  const _menuItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
-    { text: 'Produtos', icon: <InventoryIcon />, path: '/products' },
-    { text: 'Lista de Compras', icon: <ShoppingBasketIcon />, path: '/shopping' }
-  ];
-
-  const _bottomMenuItems = [
-    { text: 'Configurações', icon: <SettingsIcon />, path: '/settings' }
-  ];
-
-  const _handleMenuClick = (path) => { navigate(path); };
-  const _handleDrawerToggle = () => { _setMobileOpen(v => !v); };
-  const _handleLogout = () => { navigate('/'); };
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#FFF7F2' }}>

@@ -53,26 +53,13 @@ const Products = () => {
   const handleOpenModal = () => {
     setOpenModal(true);
   };
+  const [_mobileOpen, _setMobileOpen] = useState(false);
 
   const handleCloseModal = () => {
     setOpenModal(false);
     setNewProduct({ name: '', price: '', quantity: '', image: '', description: '' });
   };
 
-  const _handleAddProduct = () => {
-    if (newProduct.name && newProduct.price && newProduct.quantity) {
-      const product = {
-        id: products.length + 1,
-        name: newProduct.name,
-        price: parseFloat(newProduct.price),
-        quantity: parseInt(newProduct.quantity),
-        image: newProduct.image || 'https://via.placeholder.com/200?text=Produto',
-        description: newProduct.description || ''
-      };
-      setProducts([...products, product]);
-      handleCloseModal();
-    }
-  };
   const handleProductUpdated = (updated) => {
     if (!updated || !updated.id) return;
     const mapped = {
