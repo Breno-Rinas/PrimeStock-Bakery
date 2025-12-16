@@ -1,5 +1,5 @@
 # PrimeStock-Bakery
-Lista mínima de dependências e comandos para rodar (Linux)
+Itens para rodar no Linux.
 
 ## Frontend (PrimeStock-Bakery)
 Dependências:
@@ -16,8 +16,8 @@ Dependências:
 Comandos:
 ```bash
 cd PrimeStock-Bakery
-npm install
-npm run dev
+yarn install
+yarn dev
 ```
 
 ## Backend (PrimeStock-Bakery-Backend)
@@ -32,13 +32,13 @@ Dependências:
 - bcrypt
 - sequelize
 - pg-promise
-- @sequelize/postgres
+- postgres
 
 Comandos:
 ```bash
 cd PrimeStock-Bakery-Backend
-npm install
-node server.js
+yarn install
+nodemon server.js
 ```
 
 Observação: é necessário ter o PostgreSQL rodando e um banco configurado (o arquivo de conexão está em `PrimeStock-Bakery-Backend/config/localConnection.js`).
